@@ -1,5 +1,5 @@
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
-import { Apple, PlayCircle, ShoppingCart, Smartphone, CheckCircle } from 'lucide-react';
+import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+import { Apple, PlayCircle, ShoppingCart, Smartphone, CheckCircle, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export function HomePage() {
@@ -16,17 +16,30 @@ export function HomePage() {
             </div>
             <div>
               <SignedOut>
-                <SignInButton mode="modal">
-                  <button className="bg-white text-[#0194FE] px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
-                    Logare
-                  </button>
-                </SignInButton>
+                <div className="flex items-center gap-3">
+                  <Link to="/sign-in">
+                    <button className="text-white px-6 py-2 rounded-full font-semibold hover:bg-white/10 transition">
+                      Logare
+                    </button>
+                  </Link>
+                  <Link to="/sign-up">
+                    <button className="bg-white text-[#0194FE] px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
+                      Înregistrare
+                    </button>
+                  </Link>
+                </div>
               </SignedOut>
               <SignedIn>
                 <div className="flex items-center gap-4">
                   <Link to="/tickets">
-                    <button className="bg-white text-[#0194FE] px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
+                    <button className="text-white px-4 py-2 rounded-full font-semibold hover:bg-white/10 transition">
                       Biletele Mele
+                    </button>
+                  </Link>
+                  <Link to="/profile">
+                    <button className="flex items-center gap-2 bg-white text-[#0194FE] px-4 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
+                      <User className="w-4 h-4" />
+                      Profil
                     </button>
                   </Link>
                   <UserButton afterSignOutUrl="/" />
@@ -116,12 +129,12 @@ export function HomePage() {
 
         <SignedOut>
           <div className="text-center mb-16">
-            <SignInButton mode="modal">
+            <Link to="/sign-up">
               <button className="bg-white text-[#0194FE] px-8 py-4 rounded-full text-xl font-bold hover:bg-gray-100 transition shadow-lg flex items-center gap-3 mx-auto">
                 <ShoppingCart className="w-6 h-6" />
                 Începe să cumperi bilete
               </button>
-            </SignInButton>
+            </Link>
           </div>
         </SignedOut>
 

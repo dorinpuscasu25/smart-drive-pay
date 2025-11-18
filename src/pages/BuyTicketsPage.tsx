@@ -57,7 +57,7 @@ export function BuyTicketsPage() {
 
       const ticketNumber = `BEP${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-      const { error } = await supabase
+      const { error: ticketError } = await supabase
         .from('purchased_tickets')
         .insert({
           user_id: dbUser.id,
@@ -68,7 +68,46 @@ export function BuyTicketsPage() {
           valid_until: validUntil.toISOString(),
         });
 
-      if (error) throw error;
+      if (ticketError) throw ticketError;
+
+      if (!dbUser.has_purchased_bep) {
+        const personalIdResult = await supabase.rpc('generate_personal_id');
+        const personalId = personalIdResult.data;
+
+        const { error: userError } = await supabase
+          .from('users')
+          .update({
+            has_purchased_bep: true,
+            is_verified: true,
+            personal_id: personalId,
+          })
+          .eq('id', dbUser.id);
+
+        if (userError) throw userError;
+
+        const { data: referrer } = await supabase
+          .from('users')
+          .select('id')
+          .eq('personal_id', dbUser.referral_id)
+          .maybeSingle();
+
+        if (referrer) {
+          const { data: stats } = await supabase
+            .from('referral_stats')
+            .select('successful_referrals')
+            .eq('user_id', referrer.id)
+            .maybeSingle();
+
+          if (stats) {
+            await supabase
+              .from('referral_stats')
+              .update({
+                successful_referrals: (stats.successful_referrals || 0) + 1,
+              })
+              .eq('user_id', referrer.id);
+          }
+        }
+      }
 
       navigate('/tickets');
     } catch (error) {

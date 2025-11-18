@@ -10,7 +10,22 @@ export interface User {
   clerk_id: string;
   email: string;
   full_name: string | null;
+  phone: string | null;
+  referral_id: string;
+  personal_id: string | null;
+  has_purchased_bep: boolean;
+  is_verified: boolean;
   created_at: string;
+  updated_at: string;
+}
+
+export interface ReferralStats {
+  id: string;
+  user_id: string;
+  total_referrals: number;
+  successful_referrals: number;
+  tombola_tickets_earned: number;
+  updated_at: string;
 }
 
 export interface TicketType {
