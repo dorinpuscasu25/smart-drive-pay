@@ -1,4 +1,4 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+import { api } from './api';
 
 interface ValidateReferralResponse {
   valid: boolean;
@@ -8,30 +8,41 @@ interface ValidateReferralResponse {
 
 export async function validateReferralId(referralId: string): Promise<ValidateReferralResponse> {
   try {
-    const response = await fetch(
-      `${SUPABASE_URL}/functions/v1/validate-referral`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ referralId }),
-      }
-    );
+    const numericReferralId = Number.parseInt(referralId.trim(), 10);
 
-    if (!response.ok) {
+    if (!Number.isInteger(numericReferralId) || numericReferralId <= 0) {
       return {
         valid: false,
-        message: 'Error validating referral ID',
+        message: 'ID-ul de invitație trebuie să fie numeric.',
       };
     }
 
-    return await response.json();
-  } catch (error) {
-    console.error('Referral validation error:', error);
+    const response = await api.public.post<{
+      ok: boolean;
+      inviter?: {
+        id: number;
+        name: string;
+      };
+    }>('/auth/register/check-referrer', {
+      referral_id: numericReferralId,
+    });
+
+    if (!response?.ok || !response?.inviter) {
+      return {
+        valid: false,
+        message: 'Nu am găsit utilizatorul care te-a invitat.',
+      };
+    }
+
+    return {
+      valid: true,
+      message: 'ID valid.',
+      referrerName: response.inviter.name,
+    };
+  } catch {
     return {
       valid: false,
-      message: 'Network error. Please try again.',
+      message: 'Nu am putut valida ID-ul de invitație.',
     };
   }
 }

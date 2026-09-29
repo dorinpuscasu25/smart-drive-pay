@@ -1,43 +1,43 @@
 import { useState } from 'react';
-import { useSignIn } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, LogIn } from 'lucide-react';
+import { api } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
+import { getErrorMessage } from '../lib/api/errors';
+import { AuthPayload } from '../lib/types/auth';
 
 export function SignInPage() {
-  const { signIn, setActive, isLoaded } = useSignIn();
   const navigate = useNavigate();
+  const { localLogin } = useAuth();
 
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!isLoaded || !signIn) return;
-
     setIsSubmitting(true);
 
     try {
-      const result = await signIn.create({
-        identifier: formData.email,
-        password: formData.password,
-      });
+      const res = await api.public.post<AuthPayload>(
+        '/auth/login',
+        { email: formData.email, password: formData.password, device_name: 'web' }
+      );
 
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-        navigate('/');
-      } else {
-        setError('Sign in incomplete. Please try again.');
+      if (!res?.token || !res?.user) {
+        throw new Error('Răspuns invalid de la server.');
       }
-    } catch (err: any) {
-      console.error('Sign in error:', err);
-      setError(err.errors?.[0]?.message || 'Invalid email or password');
+
+      await localLogin(res.token, res.user);
+      navigate('/', { replace: true });
+    } catch (error: unknown) {
+      setError(
+        getErrorMessage(
+          error,
+          'A apărut o eroare la autentificare. Verificați datele și încercați din nou.'
+        )
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -57,30 +57,24 @@ export function SignInPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
               <input
-                id="email"
                 type="email"
                 required
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => setFormData((s) => ({ ...s, email: e.target.value }))}
                 placeholder="Enter your email"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                Password
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
               <input
-                id="password"
                 type="password"
                 required
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) => setFormData((s) => ({ ...s, password: e.target.value }))}
                 placeholder="Enter your password"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
               />
@@ -107,18 +101,6 @@ export function SignInPage() {
               )}
             </button>
           </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-slate-600">
-              Don't have an account?{' '}
-              <button
-                onClick={() => navigate('/sign-up')}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Create one
-              </button>
-            </p>
-          </div>
         </div>
       </div>
     </div>

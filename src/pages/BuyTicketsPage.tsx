@@ -1,124 +1,101 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { UserButton } from '@clerk/clerk-react';
-import { supabase, TicketType } from '../lib/supabase';
-import { useDbUser } from '../contexts/UserContext';
-import { Check, ArrowLeft, Loader2, CreditCard, Ticket } from 'lucide-react';
+import { Check, ArrowLeft, Loader2, Ticket, LogOut, ShoppingCart } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext.tsx';
+import { api } from '../lib/api';
+import { getErrorMessage } from '../lib/api/errors';
+
+type BepPass = {
+  id: number;
+  name: string;
+  description?: string | null;
+  code: string;
+  price: string;        // vine ca "160.00"
+  currency: string;     // "MDL"
+  status: 'active' | 'inactive' | string;
+  created_at: string;
+  updated_at: string;
+};
+
+type PaymentRedirect = {
+  payUrl?: string;
+  payId?: string;
+};
+
+type OrderPaymentResponse = {
+  pay?: PaymentRedirect | null;
+};
 
 export function BuyTicketsPage() {
   const navigate = useNavigate();
-  const { dbUser, loading: userLoading } = useDbUser();
-  const [tickets, setTickets] = useState<TicketType[]>([]);
+  const { isLoading: authLoading, isAuthenticated, logout } = useAuth();
+
+  const [passes, setPasses] = useState<BepPass[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [error, setError] = useState<string>('');
   const [purchasing, setPurchasing] = useState(false);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
+
+  const selectedPass = useMemo(
+    () => passes.find((p) => p.id === selectedId) ?? null,
+    [passes, selectedId]
+  );
 
   useEffect(() => {
-    loadTickets();
+    if (!authLoading && !isAuthenticated) {
+      navigate('/sign-in', { replace: true });
+      return;
+    }
+  }, [authLoading, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setError('');
+        setLoading(true);
+
+        const res = await api.authed.get<{ bep_passes: BepPass[] }>('/bep-passes/all');
+
+        const active = (res?.bep_passes ?? []).filter((p) => p.status === 'active');
+        setPasses(active);
+
+        if (active.length > 0) setSelectedId(active[0].id);
+      } catch (error: unknown) {
+        setError(getErrorMessage(error, 'Nu am putut încărca lista de bilete.'));
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const loadTickets = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ticket_types')
-        .select('*')
-        .eq('active', true)
-        .order('price', { ascending: true });
-
-      if (error) throw error;
-      setTickets(data || []);
-    } catch (error) {
-      console.error('Error loading tickets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePayment = () => {
-    setShowPaymentForm(true);
-  };
-
   const handlePurchase = async () => {
-    if (!selectedTicket || !dbUser) return;
+    if (!selectedPass) return;
 
-    setPurchasing(true);
     try {
-      const ticket = tickets.find(t => t.id === selectedTicket);
-      if (!ticket) return;
+      setPurchasing(true);
+      setError('');
 
-      const validFrom = new Date();
-      const validUntil = new Date();
-      validUntil.setDate(validUntil.getDate() + ticket.validity_days);
+      const data = await api.authed.post<OrderPaymentResponse>(
+        '/orders/new-order',
+        { bep_pass_id: selectedPass.id }
+      );
 
-      const ticketNumber = `BEP${Date.now()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-
-      const { error: ticketError } = await supabase
-        .from('purchased_tickets')
-        .insert({
-          user_id: dbUser.id,
-          ticket_type_id: ticket.id,
-          ticket_number: ticketNumber,
-          status: 'active',
-          valid_from: validFrom.toISOString(),
-          valid_until: validUntil.toISOString(),
-        });
-
-      if (ticketError) throw ticketError;
-
-      if (!dbUser.has_purchased_bep) {
-        const personalIdResult = await supabase.rpc('generate_personal_id');
-        const personalId = personalIdResult.data;
-
-        const { error: userError } = await supabase
-          .from('users')
-          .update({
-            has_purchased_bep: true,
-            is_verified: true,
-            personal_id: personalId,
-          })
-          .eq('id', dbUser.id);
-
-        if (userError) throw userError;
-
-        const { data: referrer } = await supabase
-          .from('users')
-          .select('id')
-          .eq('personal_id', dbUser.referral_id)
-          .maybeSingle();
-
-        if (referrer) {
-          const { data: stats } = await supabase
-            .from('referral_stats')
-            .select('successful_referrals')
-            .eq('user_id', referrer.id)
-            .maybeSingle();
-
-          if (stats) {
-            await supabase
-              .from('referral_stats')
-              .update({
-                successful_referrals: (stats.successful_referrals || 0) + 1,
-              })
-              .eq('user_id', referrer.id);
-          }
-        }
+      if (!data?.pay) {
+        throw new Error('Nu am primit gateway_url de la server.');
       }
 
-      navigate('/tickets');
-    } catch (error) {
-      console.error('Error purchasing ticket:', error);
-      alert('A apărut o eroare la cumpărarea biletului. Te rugăm să încerci din nou.');
+      if (data && data?.pay?.payUrl) {
+        window.location.href = data?.pay?.payUrl;
+        return;
+      }
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Nu am putut iniția plata. Încearcă din nou.'));
     } finally {
       setPurchasing(false);
     }
   };
 
-  if (loading || userLoading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0194FE] to-[#0166B8] flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-white animate-spin" />
@@ -138,6 +115,7 @@ export function BuyTicketsPage() {
               <ArrowLeft className="w-5 h-5" />
               <span className="font-semibold">Înapoi</span>
             </button>
+
             <div className="flex items-center gap-4">
               <Link to="/tickets">
                 <button className="text-white flex items-center gap-2 hover:text-white/80 transition font-semibold">
@@ -145,7 +123,14 @@ export function BuyTicketsPage() {
                   Biletele Mele
                 </button>
               </Link>
-              <UserButton afterSignOutUrl="/" />
+
+              <button
+                onClick={() => void logout()}
+                className="text-white flex items-center gap-2 hover:text-white/80 transition font-semibold"
+              >
+                <LogOut className="w-5 h-5" />
+                Logout
+              </button>
             </div>
           </div>
         </div>
@@ -153,185 +138,96 @@ export function BuyTicketsPage() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Alege biletul potrivit
-          </h1>
-          <p className="text-xl text-white/90">
-            Selectează pachetul care se potrivește nevoilor tale
-          </p>
+          <h1 className="text-4xl font-bold text-white mb-4">Alege biletul potrivit</h1>
+          <p className="text-xl text-white/90">Selectează pachetul care se potrivește nevoilor tale</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-          {tickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              onClick={() => setSelectedTicket(ticket.id)}
-              className={`bg-white rounded-3xl p-8 cursor-pointer transition-all transform hover:scale-105 ${
-                selectedTicket === ticket.id
-                  ? 'ring-4 ring-white shadow-2xl'
-                  : 'hover:shadow-xl'
-              }`}
-            >
-              {selectedTicket === ticket.id && (
-                <div className="flex justify-end mb-4">
-                  <div className="bg-[#0194FE] text-white rounded-full p-2">
-                    <Check className="w-5 h-5" />
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4">
+            {error}
+          </div>
+        )}
+
+        {passes.length === 0 ? (
+          <div className="bg-white rounded-3xl p-8 text-center">
+            <p className="text-gray-700 font-semibold">Momentan nu există BEP-uri active.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid md:grid-cols-2 gap-6 mb-12">
+              {passes.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => setSelectedId(p.id)}
+                  className={`bg-white rounded-3xl p-8 cursor-pointer transition-all transform hover:scale-105 ${
+                    selectedId === p.id ? 'ring-4 ring-white shadow-2xl' : 'hover:shadow-xl'
+                  }`}
+                >
+                  {selectedId === p.id && (
+                    <div className="flex justify-end mb-4">
+                      <div className="bg-[#0194FE] text-white rounded-full p-2">
+                        <Check className="w-5 h-5" />
+                      </div>
+                    </div>
+                  )}
+
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{p.name}</h3>
+
+                  <div className="flex items-baseline gap-2 mb-4">
+                    <span className="text-4xl font-bold text-[#0194FE]">
+                      {p.price} {p.currency}
+                    </span>
+                  </div>
+
+                  {!!p.description && <p className="text-gray-600 mb-6">{p.description}</p>}
+
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Cod:</span>
+                      <span className="font-mono font-semibold text-gray-900">{p.code}</span>
+                    </div>
                   </div>
                 </div>
-              )}
-
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                {ticket.name}
-              </h3>
-
-              <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-4xl font-bold text-[#0194FE]">
-                  {ticket.price} MDL
-                </span>
-              </div>
-
-              <p className="text-gray-600 mb-6">
-                {ticket.description}
-              </p>
-
-              <div className="border-t border-gray-200 pt-4">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">Valabilitate:</span>
-                  <span className="font-semibold text-gray-900">
-                    {ticket.validity_days} zile
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {selectedTicket && (
-          <div className="bg-white rounded-3xl shadow-2xl p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Finalizează comanda
-            </h2>
-
-            <div className="bg-gray-50 rounded-2xl p-6 mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-gray-700">Bilet selectat:</span>
-                <span className="font-semibold text-gray-900">
-                  {tickets.find(t => t.id === selectedTicket)?.name}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xl font-bold">
-                <span className="text-gray-900">Total de plată:</span>
-                <span className="text-[#0194FE]">
-                  {tickets.find(t => t.id === selectedTicket)?.price} MDL
-                </span>
-              </div>
+              ))}
             </div>
 
-            {!showPaymentForm ? (
-              <button
-                onClick={handlePayment}
-                className="w-full bg-[#0194FE] text-white py-4 rounded-2xl text-lg font-bold hover:bg-[#0166B8] transition flex items-center justify-center gap-3"
-              >
-                <CreditCard className="w-6 h-6" />
-                Continuă la plată
-              </button>
-            ) : (
-              <div className="space-y-6">
-                <div className="bg-blue-50 border-l-4 border-[#0194FE] p-4">
-                  <p className="text-sm text-gray-700">
-                    Aceasta este o plată simulată. Introdu orice date pentru a testa procesul.
-                  </p>
-                </div>
+            {selectedPass && (
+              <div className="bg-white rounded-3xl shadow-2xl p-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Finalizează comanda</h2>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Număr card
-                  </label>
-                  <input
-                    type="text"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim())}
-                    placeholder="1234 5678 9012 3456"
-                    maxLength={19}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#0194FE] focus:outline-none transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Nume titular card
-                  </label>
-                  <input
-                    type="text"
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    placeholder="ION POPESCU"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#0194FE] focus:outline-none transition"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Data expirării
-                    </label>
-                    <input
-                      type="text"
-                      value={expiryDate}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        if (value.length <= 2) {
-                          setExpiryDate(value);
-                        } else {
-                          setExpiryDate(value.slice(0, 2) + '/' + value.slice(2, 4));
-                        }
-                      }}
-                      placeholder="MM/YY"
-                      maxLength={5}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#0194FE] focus:outline-none transition"
-                    />
+                <div className="bg-gray-50 rounded-2xl p-6 mb-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-gray-700">Bilet selectat:</span>
+                    <span className="font-semibold text-gray-900">{selectedPass.name}</span>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      CVV
-                    </label>
-                    <input
-                      type="text"
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
-                      placeholder="123"
-                      maxLength={3}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#0194FE] focus:outline-none transition"
-                    />
+                  <div className="flex justify-between items-center text-xl font-bold">
+                    <span className="text-gray-900">Total de plată:</span>
+                    <span className="text-[#0194FE]">
+                      {selectedPass.price} {selectedPass.currency}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => setShowPaymentForm(false)}
-                    className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-2xl text-lg font-bold hover:bg-gray-300 transition"
-                  >
-                    Înapoi
-                  </button>
-                  <button
-                    onClick={handlePurchase}
-                    disabled={purchasing || !cardNumber || !cardName || !expiryDate || !cvv}
-                    className="flex-1 bg-[#0194FE] text-white py-4 rounded-2xl text-lg font-bold hover:bg-[#0166B8] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                  >
-                    {purchasing ? (
-                      <>
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                        Se procesează...
-                      </>
-                    ) : (
-                      'Confirmă plata'
-                    )}
-                  </button>
-                </div>
+                <button
+                  onClick={handlePurchase}
+                  disabled={purchasing}
+                  className="w-full bg-[#0194FE] text-white py-4 rounded-2xl text-lg font-bold hover:bg-[#0166B8] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                >
+                  {purchasing ? (
+                    <>
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      Se inițiază plata...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-6 h-6" />
+                      Cumpără
+                    </>
+                  )}
+                </button>
               </div>
             )}
-          </div>
+          </>
         )}
       </main>
     </div>

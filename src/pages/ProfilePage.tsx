@@ -1,29 +1,38 @@
-import { useDbUser } from '../contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
-import { useClerk } from '@clerk/clerk-react';
-import { User, Users, Trophy, Copy, CheckCircle, LogOut, ArrowLeft } from 'lucide-react';
+import { User, Ticket, Building2, Car, LogOut, ArrowLeft, Mail, Phone, CheckCircle, Copy } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext.tsx';
+import { AuthUser } from '../lib/types/auth';
+
+function displayName(user: AuthUser | null) {
+  if (!user) {
+    return 'User';
+  }
+
+  return [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.name || user.email || 'User';
+}
 
 export function ProfilePage() {
-  const { dbUser, referralStats } = useDbUser();
-  const { signOut } = useClerk();
+  const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
+  const hasPurchasedBep = (user?.bep_pass_assignments_count ?? 0) > 0;
+
   const handleCopyPersonalId = () => {
-    if (dbUser?.personal_id) {
-      navigator.clipboard.writeText(dbUser.personal_id);
+    if (user?.id) {
+      navigator.clipboard.writeText(String(user.id));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    await logout();
     navigate('/');
   };
 
-  if (!dbUser) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
@@ -59,30 +68,30 @@ export function ProfilePage() {
               <User className="w-10 h-10 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">{dbUser.full_name || 'User'}</h1>
-              <p className="text-slate-600">{dbUser.email}</p>
+              <h1 className="text-3xl font-bold text-slate-900">{displayName(user)}</h1>
+              <p className="text-slate-600">{user.email}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="p-6 bg-slate-50 rounded-xl">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <Ticket className="w-6 h-6 text-green-600" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900">Account Status</h3>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-slate-600">BEP Purchased:</span>
-                  <span className={dbUser.has_purchased_bep ? 'text-green-600 font-medium' : 'text-red-600'}>
-                    {dbUser.has_purchased_bep ? 'Yes' : 'No'}
+                  <span className={hasPurchasedBep ? 'text-green-600 font-medium' : 'text-red-600'}>
+                    {hasPurchasedBep ? 'Yes' : 'No'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Verified:</span>
-                  <span className={dbUser.is_verified ? 'text-green-600 font-medium' : 'text-red-600'}>
-                    {dbUser.is_verified ? 'Yes' : 'No'}
+                  <span className={user.email_verified_at ? 'text-green-600 font-medium' : 'text-red-600'}>
+                    {user.email_verified_at ? 'Yes' : 'No'}
                   </span>
                 </div>
               </div>
@@ -93,13 +102,13 @@ export function ProfilePage() {
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                   <User className="w-6 h-6 text-blue-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900">Your Referral ID</h3>
+                <h3 className="text-lg font-semibold text-slate-900">User ID</h3>
               </div>
-              {dbUser.personal_id ? (
+              {user.id ? (
                 <div>
                   <div className="flex items-center gap-2">
                     <code className="text-2xl font-bold text-blue-600 tracking-wider">
-                      {dbUser.personal_id}
+                      {user.id}
                     </code>
                     <button
                       onClick={handleCopyPersonalId}
@@ -114,67 +123,75 @@ export function ProfilePage() {
                     </button>
                   </div>
                   <p className="text-sm text-slate-600 mt-2">
-                    Share this ID with people you want to invite
+                    Acest ID poate fi folosit ca ID de invitație la înregistrare.
                   </p>
                 </div>
               ) : (
                 <div className="text-slate-600">
                   <p className="mb-2">Not available yet</p>
-                  <p className="text-sm">Purchase a BEP ticket to get your personal referral ID</p>
                 </div>
               )}
             </div>
           </div>
-        </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users className="w-7 h-7 text-blue-600" />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            <div className="p-5 bg-slate-50 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-slate-600">Cars</span>
+                <Car className="w-5 h-5 text-[#0194FE]" />
+              </div>
+              <p className="text-3xl font-bold text-slate-900">{user.cars_count ?? 0}</p>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">Referral Statistics</h2>
+
+            <div className="p-5 bg-slate-50 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-slate-600">BEP</span>
+                <Ticket className="w-5 h-5 text-[#0194FE]" />
+              </div>
+              <p className="text-3xl font-bold text-slate-900">{user.bep_pass_assignments_count ?? 0}</p>
+            </div>
+
+            <div className="p-5 bg-slate-50 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-slate-600">Orders</span>
+                <Ticket className="w-5 h-5 text-[#0194FE]" />
+              </div>
+              <p className="text-3xl font-bold text-slate-900">{user.orders_count ?? 0}</p>
+            </div>
+
+            <div className="p-5 bg-slate-50 rounded-xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-slate-600">Companies</span>
+                <Building2 className="w-5 h-5 text-[#0194FE]" />
+              </div>
+              <p className="text-3xl font-bold text-slate-900">{user.companies_owned_count ?? 0}</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-blue-800 font-medium">Total Referrals</span>
-                <Users className="w-6 h-6 text-blue-600" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-5 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-3 mb-2">
+                <Mail className="w-5 h-5 text-[#0194FE]" />
+                <span className="text-slate-600">Email</span>
               </div>
-              <p className="text-4xl font-bold text-blue-900">
-                {referralStats?.total_referrals || 0}
-              </p>
+              <p className="font-semibold text-slate-900 break-all">{user.email || '—'}</p>
             </div>
 
-            <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-green-800 font-medium">Successful Referrals</span>
-                <CheckCircle className="w-6 h-6 text-green-600" />
+            <div className="p-5 bg-slate-50 rounded-xl">
+              <div className="flex items-center gap-3 mb-2">
+                <Phone className="w-5 h-5 text-[#0194FE]" />
+                <span className="text-slate-600">Phone</span>
               </div>
-              <p className="text-4xl font-bold text-green-900">
-                {referralStats?.successful_referrals || 0}
-              </p>
-              <p className="text-sm text-green-700 mt-1">Users who purchased BEP</p>
-            </div>
-
-            <div className="p-6 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-amber-800 font-medium">Tombola Tickets</span>
-                <Trophy className="w-6 h-6 text-amber-600" />
-              </div>
-              <p className="text-4xl font-bold text-amber-900">
-                {referralStats?.tombola_tickets_earned || 0}
-              </p>
-              <p className="text-sm text-amber-700 mt-1">Raffle entries earned</p>
+              <p className="font-semibold text-slate-900">{user.phone || '—'}</p>
             </div>
           </div>
         </div>
 
-        {!dbUser.has_purchased_bep && (
+        {!hasPurchasedBep && (
           <div className="mt-6 p-6 bg-blue-50 border border-blue-200 rounded-xl">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">Ready to Start Inviting?</h3>
+            <h3 className="text-lg font-semibold text-blue-900 mb-2">Ready to buy your first BEP?</h3>
             <p className="text-blue-800 mb-4">
-              Purchase a BEP ticket to receive your personal referral ID and start building your network.
+              Pe web, contul tău este folosit doar pentru cumpărarea BEP-urilor și vizualizarea lor.
             </p>
             <button
               onClick={() => navigate('/buy')}

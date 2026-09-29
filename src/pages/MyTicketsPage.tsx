@@ -1,43 +1,51 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserButton } from '@clerk/clerk-react';
-import { supabase, PurchasedTicket } from '../lib/supabase';
-import { useDbUser } from '../contexts/UserContext';
-import { ArrowLeft, Loader2, Ticket, Calendar, Hash, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Ticket, Calendar, Hash, CheckCircle, Car, LogOut } from 'lucide-react';
+import { api } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext.tsx';
+
+type BepAssignment = {
+  id: number;
+  status: 'active' | 'expired' | 'used' | string;
+  valid_from: string | null;
+  valid_until: string | null;
+  code?: string | null;
+  bep_pass?: {
+    id: number;
+    name: string;
+    code: string;
+    price: string;
+    currency: string;
+  } | null;
+  car?: {
+    plate_number?: string | null;
+  } | null;
+};
 
 export function MyTicketsPage() {
   const navigate = useNavigate();
-  const { dbUser, loading: userLoading } = useDbUser();
-  const [tickets, setTickets] = useState<PurchasedTicket[]>([]);
+  const { user, isLoading, logout } = useAuth();
+  const [tickets, setTickets] = useState<BepAssignment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (dbUser) {
-      loadTickets();
-    }
-  }, [dbUser]);
-
-  const loadTickets = async () => {
-    if (!dbUser) return;
+  const loadTickets = useCallback(async () => {
+    if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('purchased_tickets')
-        .select(`
-          *,
-          ticket_types (*)
-        `)
-        .eq('user_id', dbUser.id)
-        .order('purchased_at', { ascending: false });
-
-      if (error) throw error;
-      setTickets(data || []);
+      const data = await api.authed.get<{ assignments: BepAssignment[] }>('/bep-assignments');
+      setTickets(data?.assignments ?? []);
     } catch (error) {
       console.error('Error loading tickets:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      void loadTickets();
+    }
+  }, [user, loadTickets]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -48,7 +56,7 @@ export function MyTicketsPage() {
     });
   };
 
-  if (loading || userLoading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0194FE] to-[#0166B8] flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-white animate-spin" />
@@ -68,7 +76,13 @@ export function MyTicketsPage() {
               <ArrowLeft className="w-5 h-5" />
               <span className="font-semibold">Înapoi</span>
             </button>
-            <UserButton afterSignOutUrl="/" />
+            <button
+              onClick={() => void logout()}
+              className="text-white flex items-center gap-2 hover:text-white/80 transition font-semibold"
+            >
+              <LogOut className="w-5 h-5" />
+              Logout
+            </button>
           </div>
         </div>
       </nav>
@@ -120,7 +134,7 @@ export function MyTicketsPage() {
                     </div>
 
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                      {ticket.ticket_types?.name}
+                      {ticket.bep_pass?.name ?? 'BEP'}
                     </h3>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
@@ -129,7 +143,7 @@ export function MyTicketsPage() {
                         <div>
                           <div className="text-sm text-gray-600">Număr bilet</div>
                           <div className="font-mono font-semibold text-gray-900">
-                            {ticket.ticket_number}
+                            {ticket.code ?? `BEP-${ticket.id}`}
                           </div>
                         </div>
                       </div>
@@ -139,7 +153,17 @@ export function MyTicketsPage() {
                         <div>
                           <div className="text-sm text-gray-600">Valabilitate</div>
                           <div className="font-semibold text-gray-900">
-                            {formatDate(ticket.valid_from)} - {formatDate(ticket.valid_until)}
+                            {ticket.valid_from ? formatDate(ticket.valid_from) : '—'} - {ticket.valid_until ? formatDate(ticket.valid_until) : '—'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <Car className="w-5 h-5 text-[#0194FE] mt-0.5" />
+                        <div>
+                          <div className="text-sm text-gray-600">Mașină asociată</div>
+                          <div className="font-semibold text-gray-900">
+                            {ticket.car?.plate_number || 'Neasociat încă'}
                           </div>
                         </div>
                       </div>
@@ -149,7 +173,7 @@ export function MyTicketsPage() {
                   <div className="bg-[#0194FE]/10 rounded-2xl p-6 text-center min-w-[200px]">
                     <div className="text-sm text-gray-600 mb-2">Preț achitat</div>
                     <div className="text-3xl font-bold text-[#0194FE]">
-                      {ticket.ticket_types?.price} MDL
+                      {ticket.bep_pass?.price ?? '—'} {ticket.bep_pass?.currency ?? 'MDL'}
                     </div>
                   </div>
                 </div>
@@ -157,7 +181,7 @@ export function MyTicketsPage() {
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <div className="bg-blue-50 rounded-xl p-4">
                     <p className="text-sm text-gray-700">
-                      <strong>Cum folosești biletul:</strong> Descarcă aplicația Smart Driver și logează-te cu contul tău. Biletul va apărea automat în aplicație.
+                      <strong>Cum folosești biletul:</strong> Descarcă aplicația Smart Driver și loghează-te cu același cont. BEP-ul va apărea automat în aplicație.
                     </p>
                   </div>
                 </div>

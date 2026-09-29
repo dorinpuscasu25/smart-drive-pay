@@ -1,43 +1,48 @@
-import { ClerkProvider, SignedIn, SignedOut } from '@clerk/clerk-react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { CLERK_PUBLISHABLE_KEY } from './lib/clerk';
-import { UserProvider } from './contexts/UserContext';
+
 import { HomePage } from './pages/HomePage';
 import { BuyTicketsPage } from './pages/BuyTicketsPage';
 import { MyTicketsPage } from './pages/MyTicketsPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { SignInPage } from './pages/SignInPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ThankYouPage } from './pages/ThankYouPage';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+import { AuthProvider, useAuth } from './contexts/AuthContext.tsx';
+
+function FullPageLoader() {
   return (
-    <>
-      <SignedIn>{children}</SignedIn>
-      <SignedOut>
-        <Navigate to="/sign-in" replace />
-      </SignedOut>
-    </>
+    <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+      Loading...
+    </div>
   );
 }
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isLoading, isAuthenticated } = useAuth();
+
+  if (isLoading) return <FullPageLoader />;
+
+  return isAuthenticated ? <>{children}</> : <Navigate to="/sign-in" replace />;
+}
+
 function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <SignedOut>{children}</SignedOut>
-      <SignedIn>
-        <Navigate to="/" replace />
-      </SignedIn>
-    </>
-  );
+  const { isLoading, isAuthenticated } = useAuth();
+
+  if (isLoading) return <FullPageLoader />;
+
+  return !isAuthenticated ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 function App() {
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-      <UserProvider>
-        <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+
           <Routes>
             <Route path="/" element={<HomePage />} />
+
             <Route
               path="/sign-up"
               element={
@@ -46,6 +51,7 @@ function App() {
                 </PublicOnlyRoute>
               }
             />
+
             <Route
               path="/sign-in"
               element={
@@ -54,6 +60,7 @@ function App() {
                 </PublicOnlyRoute>
               }
             />
+
             <Route
               path="/buy"
               element={
@@ -62,6 +69,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/tickets"
               element={
@@ -70,6 +78,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/profile"
               element={
@@ -78,11 +87,20 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="/thankyou/:orderId"
+              element={
+                <ProtectedRoute>
+                  <ThankYouPage />
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
-      </UserProvider>
-    </ClerkProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

@@ -1,11 +1,12 @@
-import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
-import { Apple, PlayCircle, ShoppingCart, Smartphone, CheckCircle, User } from 'lucide-react';
+import { Apple, PlayCircle, ShoppingCart, Smartphone, CheckCircle, User, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from '../components/LanguageSelector';
+import { useAuth } from '../contexts/AuthContext.tsx';
 
 export function HomePage() {
   const { t } = useTranslation();
+  const { user, isLoading, isAuthenticated, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0194FE] to-[#0166B8]">
@@ -18,39 +19,50 @@ export function HomePage() {
               </div>
               <span className="text-white font-bold text-xl">Smart Driver</span>
             </div>
-            <div>
-              <SignedOut>
-                <div className="flex items-center gap-3">
-                  <LanguageSelector />
+
+            <div className="flex items-center gap-3">
+              <LanguageSelector />
+
+              {/* dacă încă se încarcă starea auth, nu afișăm acțiuni care “sar” */}
+              {isLoading ? null : !isAuthenticated ? (
+                <>
                   <Link to="/sign-in">
                     <button className="text-white px-6 py-2 rounded-full font-semibold hover:bg-white/10 transition">
                       {t('nav.login')}
                     </button>
                   </Link>
+
                   <Link to="/sign-up">
                     <button className="bg-white text-[#0194FE] px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
                       {t('nav.register')}
                     </button>
                   </Link>
-                </div>
-              </SignedOut>
-              <SignedIn>
-                <div className="flex items-center gap-4">
-                  <LanguageSelector />
+                </>
+              ) : (
+                <>
                   <Link to="/tickets">
                     <button className="text-white px-4 py-2 rounded-full font-semibold hover:bg-white/10 transition">
                       {t('nav.myTickets')}
                     </button>
                   </Link>
+
                   <Link to="/profile">
                     <button className="flex items-center gap-2 bg-white text-[#0194FE] px-4 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
                       <User className="w-4 h-4" />
                       {t('nav.profile')}
                     </button>
                   </Link>
-                  <UserButton afterSignOutUrl="/" />
-                </div>
-              </SignedIn>
+
+                  <button
+                    onClick={() => void logout()}
+                    className="flex items-center gap-2 text-white px-4 py-2 rounded-full font-semibold hover:bg-white/10 transition"
+                    title={user?.email ?? 'Logout'}
+                  >
+                    <LogOut className="w-4 h-4" />
+                    {t('nav.logout') ?? 'Logout'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -58,12 +70,8 @@ export function HomePage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-white mb-6">
-            {t('home.title')}
-          </h1>
-          <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            {t('home.subtitle')}
-          </p>
+          <h1 className="text-5xl font-bold text-white mb-6">{t('home.title')}</h1>
+          <p className="text-xl text-white/90 max-w-2xl mx-auto">{t('home.subtitle')}</p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 mb-16">
@@ -77,9 +85,7 @@ export function HomePage() {
                 <span className="text-3xl font-bold text-[#0194FE]">1</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">{t('home.step1Title')}</h3>
-              <p className="text-gray-600">
-                {t('home.step1Desc')}
-              </p>
+              <p className="text-gray-600">{t('home.step1Desc')}</p>
             </div>
 
             <div className="text-center">
@@ -87,9 +93,7 @@ export function HomePage() {
                 <span className="text-3xl font-bold text-[#0194FE]">2</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">{t('home.step2Title')}</h3>
-              <p className="text-gray-600">
-                {t('home.step2Desc')}
-              </p>
+              <p className="text-gray-600">{t('home.step2Desc')}</p>
             </div>
 
             <div className="text-center">
@@ -97,9 +101,7 @@ export function HomePage() {
                 <span className="text-3xl font-bold text-[#0194FE]">3</span>
               </div>
               <h3 className="text-xl font-semibold mb-2">{t('home.step3Title')}</h3>
-              <p className="text-gray-600">
-                {t('home.step3Desc')}
-              </p>
+              <p className="text-gray-600">{t('home.step3Desc')}</p>
             </div>
           </div>
 
@@ -109,31 +111,18 @@ export function HomePage() {
               {t('home.perfectIntegration')}
             </h3>
             <ul className="space-y-3 text-gray-700">
-              <li className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-[#0194FE] mt-0.5 flex-shrink-0" />
-                <span>{t('home.integration1')}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-[#0194FE] mt-0.5 flex-shrink-0" />
-                <span>{t('home.integration2')}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-[#0194FE] mt-0.5 flex-shrink-0" />
-                <span>{t('home.integration3')}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-[#0194FE] mt-0.5 flex-shrink-0" />
-                <span>{t('home.integration4')}</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-[#0194FE] mt-0.5 flex-shrink-0" />
-                <span>{t('home.integration5')}</span>
-              </li>
+              {['integration1', 'integration2', 'integration3', 'integration4', 'integration5'].map((k) => (
+                <li key={k} className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-[#0194FE] mt-0.5 flex-shrink-0" />
+                  <span>{t(`home.${k}`)}</span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
-        <SignedOut>
+        {/* Buton CTA diferit în funcție de auth */}
+        {!isLoading && !isAuthenticated ? (
           <div className="text-center mb-16">
             <Link to="/sign-up">
               <button className="bg-white text-[#0194FE] px-8 py-4 rounded-full text-xl font-bold hover:bg-gray-100 transition shadow-lg flex items-center gap-3 mx-auto">
@@ -142,9 +131,7 @@ export function HomePage() {
               </button>
             </Link>
           </div>
-        </SignedOut>
-
-        <SignedIn>
+        ) : !isLoading && isAuthenticated ? (
           <div className="text-center mb-16">
             <Link to="/buy">
               <button className="bg-white text-[#0194FE] px-8 py-4 rounded-full text-xl font-bold hover:bg-gray-100 transition shadow-lg flex items-center gap-3 mx-auto">
@@ -153,7 +140,7 @@ export function HomePage() {
               </button>
             </Link>
           </div>
-        </SignedIn>
+        ) : null}
 
         <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
@@ -188,9 +175,7 @@ export function HomePage() {
 
       <footer className="bg-white/10 backdrop-blur-sm border-t border-white/20 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <p className="text-center text-white/80">
-            © 2025 Smart Driver. {t('home.footer')}
-          </p>
+          <p className="text-center text-white/80">© 2025 Smart Driver. {t('home.footer')}</p>
         </div>
       </footer>
     </div>
