@@ -8,7 +8,54 @@ import { getErrorMessage } from '../lib/api/errors';
 import { AuthPayload } from '../lib/types/auth';
 
 type RegistrationStep = 'details' | 'verify-email' | 'phone' | 'password';
-type Gender = 'male' | 'female' | 'other';
+type Gender = 'male' | 'female';
+
+// Țările de reședință (T&C 3.1, 4.1) – aceeași listă ca în aplicația mobilă.
+const COUNTRY_OPTIONS = [
+  { code: 'MD', label: 'Moldova' },
+  { code: 'RO', label: 'România' },
+  { code: 'UA', label: 'Ucraina' },
+  { code: 'IT', label: 'Italia' },
+  { code: 'DE', label: 'Germania' },
+  { code: 'FR', label: 'Franța' },
+  { code: 'GB', label: 'Marea Britanie' },
+];
+
+const LEGAL = {
+  terms: '/legal/termeni-si-conditii',
+  privacy: '/legal/politica-de-confidentialitate',
+  raffle: '/legal/regulamentul-tombolei',
+};
+
+// Acordurile cerute la înregistrare (T&C 2.2, Politica de Confidențialitate 5).
+const CONSENTS: { key: string; required: boolean; label: React.ReactNode }[] = [
+  {
+    key: 'terms',
+    required: true,
+    label: (
+      <>
+        Am citit și accept{' '}
+        <a href={LEGAL.terms} target="_blank" rel="noreferrer" className="text-blue-600 underline">Termenii și Condițiile</a>{' '}
+        și{' '}
+        <a href={LEGAL.raffle} target="_blank" rel="noreferrer" className="text-blue-600 underline">Regulamentul Tombolei</a>
+      </>
+    ),
+  },
+  {
+    key: 'privacy',
+    required: true,
+    label: (
+      <>
+        Sunt de acord cu prelucrarea datelor conform{' '}
+        <a href={LEGAL.privacy} target="_blank" rel="noreferrer" className="text-blue-600 underline">Politicii de Confidențialitate</a>
+      </>
+    ),
+  },
+  { key: 'age_18', required: true, label: 'Confirm că am împlinit 18 ani' },
+  { key: 'geolocation', required: false, label: 'Permit folosirea locației pentru a găsi service-uri apropiate (opțional)' },
+  { key: 'personalized_ads', required: false, label: 'Accept reclame personalizate de la partenerii Smart Driver (opțional)' },
+  { key: 'marketing', required: false, label: 'Vreau să primesc noutăți și oferte (opțional)' },
+];
 
 export function SignUpPage() {
   const navigate = useNavigate();
@@ -23,7 +70,12 @@ export function SignUpPage() {
     emailCode: '',
     phone: '',
     gender: 'male' as Gender,
+    countryCode: 'MD',
   });
+  const [consents, setConsents] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(CONSENTS.map((consent) => [consent.key, false]))
+  );
+  const missingRequiredConsents = CONSENTS.some((consent) => consent.required && !consents[consent.key]);
   const [registrationId, setRegistrationId] = useState('');
   const [step, setStep] = useState<RegistrationStep>('details');
 
@@ -81,6 +133,7 @@ export function SignUpPage() {
             referral_id: Number.parseInt(formData.referralId.trim(), 10),
             full_name: formData.fullName.trim(),
             gender: formData.gender,
+            country_code: formData.countryCode,
             email: formData.email.trim(),
           }
         );
@@ -113,11 +166,16 @@ export function SignUpPage() {
           throw new Error('Parolele nu coincid.');
         }
 
+        if (missingRequiredConsents) {
+          throw new Error('Pentru a crea contul trebuie să accepți documentele obligatorii și să confirmi vârsta de 18 ani.');
+        }
+
         const response = await api.public.post<AuthPayload>('/auth/register/finish', {
           registration_id: registrationId,
           password: formData.password,
           password_confirmation: formData.confirmPassword,
           device_name: 'web',
+          consents,
         });
 
         await localLogin(response.token, response.user);
@@ -231,7 +289,22 @@ export function SignUpPage() {
                   >
                     <option value="male">Masculin</option>
                     <option value="female">Feminin</option>
-                    <option value="other">Altul</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="countryCode" className="block text-sm font-medium text-slate-700 mb-2">
+                    Țara de reședință <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="countryCode"
+                    value={formData.countryCode}
+                    onChange={(e) => setFormData((current) => ({ ...current, countryCode: e.target.value }))}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
+                  >
+                    {COUNTRY_OPTIONS.map((country) => (
+                      <option key={country.code} value={country.code}>{country.label}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -319,6 +392,23 @@ export function SignUpPage() {
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   />
                 </div>
+
+                <div className="space-y-3">
+                  {CONSENTS.map((consent) => (
+                    <label key={consent.key} className="flex items-start gap-3 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={consents[consent.key]}
+                        onChange={(e) => setConsents((current) => ({ ...current, [consent.key]: e.target.checked }))}
+                        className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600"
+                      />
+                      <span>
+                        {consent.label}
+                        {consent.required && <span className="text-red-500"> *</span>}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </>
             )}
 
@@ -336,7 +426,7 @@ export function SignUpPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting || (step === 'details' && !isReferralReady)}
+              disabled={isSubmitting || (step === 'details' && !isReferralReady) || (step === 'password' && missingRequiredConsents)}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? (

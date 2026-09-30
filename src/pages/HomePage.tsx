@@ -176,6 +176,11 @@ export function HomePage() {
       <footer className="bg-white/10 backdrop-blur-sm border-t border-white/20 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <p className="text-center text-white/80">© 2025 Smart Driver. {t('home.footer')}</p>
+          <nav className="mt-3 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+            <a href="/legal/termeni-si-conditii" className="text-white/80 hover:text-white underline">Termeni și Condiții</a>
+            <a href="/legal/politica-de-confidentialitate" className="text-white/80 hover:text-white underline">Politica de Confidențialitate</a>
+            <a href="/legal/regulamentul-tombolei" className="text-white/80 hover:text-white underline">Regulamentul Tombolei</a>
+          </nav>
         </div>
       </footer>
     </div>
