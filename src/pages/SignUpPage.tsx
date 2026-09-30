@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getErrorMessage } from '../lib/api/errors';
 import { AuthPayload } from '../lib/types/auth';
 
-type RegistrationStep = 'details' | 'verify-email' | 'phone' | 'password';
+type RegistrationStep = 'details' | 'verify-email' | 'phone' | 'verify-phone' | 'password';
 type Gender = 'male' | 'female';
 
 // Țările de reședință (T&C 3.1, 4.1) – aceeași listă ca în aplicația mobilă.
@@ -68,6 +68,7 @@ export function SignUpPage() {
     fullName: '',
     referralId: '',
     emailCode: '',
+    phoneCode: '',
     phone: '',
     gender: 'male' as Gender,
     countryCode: 'MD',
@@ -155,8 +156,17 @@ export function SignUpPage() {
           phone: formData.phone.trim(),
         });
 
+        // T&C 3.3: numărul se confirmă cu codul primit prin SMS.
+        setStep('verify-phone');
+        setSuccessMessage('Am trimis un cod prin SMS pe numărul tău.');
+      } else if (step === 'verify-phone') {
+        await api.public.post('/auth/register/confirm-phone', {
+          registration_id: registrationId,
+          code: formData.phoneCode.trim(),
+        });
+
         setStep('password');
-        setSuccessMessage('Numărul de telefon a fost salvat.');
+        setSuccessMessage('Numărul de telefon a fost confirmat.');
       } else {
         if (formData.password.length < 8) {
           throw new Error('Parola trebuie să aibă minimum 8 caractere.');
@@ -195,8 +205,10 @@ export function SignUpPage() {
         : step === 'verify-email'
           ? 'Se verifică...'
           : step === 'phone'
-            ? 'Se salvează...'
-            : 'Se creează contul...';
+            ? 'Se trimite codul...'
+            : step === 'verify-phone'
+              ? 'Se verifică...'
+              : 'Se creează contul...';
     }
 
     return step === 'details'
@@ -204,8 +216,10 @@ export function SignUpPage() {
       : step === 'verify-email'
         ? 'Confirmă emailul'
         : step === 'phone'
-          ? 'Salvează telefonul'
-          : 'Creează contul';
+          ? 'Trimite codul SMS'
+          : step === 'verify-phone'
+            ? 'Confirmă telefonul'
+            : 'Creează contul';
   })();
 
   return (
@@ -221,6 +235,7 @@ export function SignUpPage() {
               {step === 'details' && 'Creează contul Smart Driver pentru web și mobil'}
               {step === 'verify-email' && 'Confirmă codul primit pe email'}
               {step === 'phone' && 'Adaugă numărul de telefon'}
+              {step === 'verify-phone' && 'Confirmă codul primit prin SMS'}
               {step === 'password' && 'Alege parola contului tău'}
             </p>
           </div>
@@ -356,6 +371,25 @@ export function SignUpPage() {
                   value={formData.phone}
                   onChange={(e) => setFormData((current) => ({ ...current, phone: e.target.value }))}
                   placeholder="+37369111333"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                />
+              </div>
+            )}
+
+            {step === 'verify-phone' && (
+              <div>
+                <label htmlFor="phoneCode" className="block text-sm font-medium text-slate-700 mb-2">
+                  Cod SMS <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="phoneCode"
+                  type="text"
+                  inputMode="numeric"
+                  required
+                  maxLength={6}
+                  value={formData.phoneCode}
+                  onChange={(e) => setFormData((current) => ({ ...current, phoneCode: e.target.value.replace(/[^\d]/g, '') }))}
+                  placeholder="Introdu codul din SMS"
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                 />
               </div>
