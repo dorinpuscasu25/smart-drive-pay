@@ -230,7 +230,7 @@ export function SignUpPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
               <UserPlus className="w-8 h-8 text-blue-600" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Create Account</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Creează cont</h1>
             <p className="text-slate-600">
               {step === 'details' && 'Creează contul Smart Driver pentru web și mobil'}
               {step === 'verify-email' && 'Confirmă codul primit pe email'}
@@ -476,12 +476,12 @@ export function SignUpPage() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-600">
-              Already have an account?{' '}
+              Ai deja cont?{' '}
               <button
                 onClick={() => navigate('/sign-in')}
                 className="text-blue-600 hover:text-blue-700 font-medium"
               >
-                Sign in
+                Intră în cont
               </button>
             </p>
           </div>
