@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Ticket, Calendar, Hash, CheckCircle, Car, LogOut } from 'lucide-react';
+import { Loader2, Ticket, Calendar, Hash, CheckCircle, Car } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { SiteNavbar } from '../components/SiteNavbar';
 
 type BepAssignment = {
   id: number;
@@ -18,13 +19,15 @@ type BepAssignment = {
     currency: string;
   } | null;
   car?: {
-    plate_number?: string | null;
+    registration_number?: string | null;
+    brand?: string | null;
+    model?: string | null;
   } | null;
 };
 
 export function MyTicketsPage() {
   const navigate = useNavigate();
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading } = useAuth();
   const [tickets, setTickets] = useState<BepAssignment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -66,26 +69,7 @@ export function MyTicketsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0194FE] to-[#0166B8]">
-      <nav className="bg-white/10 backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button
-              onClick={() => navigate('/')}
-              className="text-white flex items-center gap-2 hover:text-white/80 transition"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-semibold">Înapoi</span>
-            </button>
-            <button
-              onClick={() => void logout()}
-              className="text-white flex items-center gap-2 hover:text-white/80 transition font-semibold"
-            >
-              <LogOut className="w-5 h-5" />
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
+      <SiteNavbar />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
@@ -163,7 +147,7 @@ export function MyTicketsPage() {
                         <div>
                           <div className="text-sm text-gray-600">Mașină asociată</div>
                           <div className="font-semibold text-gray-900">
-                            {ticket.car?.plate_number || 'Neasociat încă'}
+                            {ticket.car?.registration_number ? `${ticket.car.registration_number}${ticket.car.brand ? ` · ${[ticket.car.brand, ticket.car.model].filter(Boolean).join(' ')}` : ''}` : 'Neasociat încă'}
                           </div>
                         </div>
                       </div>

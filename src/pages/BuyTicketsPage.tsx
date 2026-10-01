@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Check, ArrowLeft, Loader2, Ticket, LogOut, ShoppingCart, Car as CarIcon, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, Loader2, ShoppingCart, Car as CarIcon, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { api } from '../lib/api';
 import { getErrorMessage } from '../lib/api/errors';
 import type { Car } from '../lib/types';
+import { SiteNavbar } from '../components/SiteNavbar';
 
 // T&C 4.1: profilul auto complet e necesar pentru BEP (aceleași câmpuri ca pe server).
 const CAR_PROFILE_FIELDS: [keyof Car, string][] = [
@@ -51,7 +52,7 @@ type OrderPaymentResponse = {
 
 export function BuyTicketsPage() {
   const navigate = useNavigate();
-  const { isLoading: authLoading, isAuthenticated, logout } = useAuth();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
 
   const [passes, setPasses] = useState<BepPass[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,36 +149,7 @@ export function BuyTicketsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0194FE] to-[#0166B8]">
-      <nav className="bg-white/10 backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button
-              onClick={() => navigate('/')}
-              className="text-white flex items-center gap-2 hover:text-white/80 transition"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-semibold">Înapoi</span>
-            </button>
-
-            <div className="flex items-center gap-4">
-              <Link to="/tickets">
-                <button className="text-white flex items-center gap-2 hover:text-white/80 transition font-semibold">
-                  <Ticket className="w-5 h-5" />
-                  Biletele Mele
-                </button>
-              </Link>
-
-              <button
-                onClick={() => void logout()}
-                className="text-white flex items-center gap-2 hover:text-white/80 transition font-semibold"
-              >
-                <LogOut className="w-5 h-5" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <SiteNavbar />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">

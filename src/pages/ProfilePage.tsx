@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { User, Ticket, Building2, Car, LogOut, ArrowLeft, Mail, Phone, CheckCircle, Copy } from 'lucide-react';
+import { User, Ticket, Building2, Car, Mail, Phone, CheckCircle, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { AuthUser } from '../lib/types/auth';
+import { SiteNavbar } from '../components/SiteNavbar';
 
 function displayName(user: AuthUser | null) {
   if (!user) {
@@ -13,7 +14,7 @@ function displayName(user: AuthUser | null) {
 }
 
 export function ProfilePage() {
-  const { user, logout, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
@@ -27,10 +28,6 @@ export function ProfilePage() {
     }
   };
 
-  const handleSignOut = async () => {
-    await logout();
-    navigate('/');
-  };
 
   if (isLoading || !user) {
     return (
@@ -44,24 +41,8 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <SiteNavbar variant="light" />
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Înapoi</span>
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Ieșire</span>
-          </button>
-        </div>
-
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">

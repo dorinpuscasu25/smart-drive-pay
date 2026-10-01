@@ -3,7 +3,9 @@
     "login": "Logare",
     "register": "Înregistrare",
     "myTickets": "Biletele Mele",
-    "profile": "Profil"
+    "profile": "Profil",
+    "buy": "Cumpără BEP",
+    "logout": "Ieșire"
   },
   "home": {
     "title": "Cumpără Bilete Electronice",

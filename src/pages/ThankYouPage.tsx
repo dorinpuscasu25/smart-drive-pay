@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, CheckCircle2, Loader2, Mail, Receipt, Ticket } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { Calendar, CheckCircle2, Loader2, Mail, Receipt, Ticket } from 'lucide-react';
 import { api } from '../lib/api';
 import { getErrorMessage } from '../lib/api/errors';
-import { useAuth } from '../contexts/AuthContext';
+import { SiteNavbar } from '../components/SiteNavbar';
 
 type OrderInfo = {
   id: number;
@@ -73,9 +73,7 @@ function paymentBadgeClass(status?: string | null) {
 }
 
 export function ThankYouPage() {
-  const navigate = useNavigate();
   const { orderId } = useParams<{ orderId: string }>();
-  const { logout } = useAuth();
 
   const [order, setOrder] = useState<OrderInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -151,35 +149,7 @@ export function ThankYouPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0194FE] to-[#0166B8]">
-      <nav className="bg-white/10 backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button
-              onClick={() => navigate('/')}
-              className="text-white flex items-center gap-2 hover:text-white/80 transition"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-semibold">Înapoi</span>
-            </button>
-
-            <div className="flex items-center gap-4">
-              <Link to="/tickets">
-                <button className="text-white flex items-center gap-2 hover:text-white/80 transition font-semibold">
-                  <Ticket className="w-5 h-5" />
-                  Biletele Mele
-                </button>
-              </Link>
-
-              <button
-                onClick={() => void logout()}
-                className="text-white flex items-center gap-2 hover:text-white/80 transition font-semibold"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <SiteNavbar />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">

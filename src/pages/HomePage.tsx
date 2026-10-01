@@ -1,72 +1,16 @@
-import { Apple, PlayCircle, ShoppingCart, Smartphone, CheckCircle, User, LogOut } from 'lucide-react';
+import { Apple, PlayCircle, ShoppingCart, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LanguageSelector } from '../components/LanguageSelector';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { SiteNavbar } from '../components/SiteNavbar';
 
 export function HomePage() {
   const { t } = useTranslation();
-  const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0194FE] to-[#0166B8]">
-      <nav className="bg-white/10 backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="bg-white rounded-full p-2">
-                <Smartphone className="w-6 h-6 text-[#0194FE]" />
-              </div>
-              <span className="text-white font-bold text-xl">Smart Driver Club</span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <LanguageSelector />
-
-              {/* dacă încă se încarcă starea auth, nu afișăm acțiuni care “sar” */}
-              {isLoading ? null : !isAuthenticated ? (
-                <>
-                  <Link to="/sign-in">
-                    <button className="text-white px-6 py-2 rounded-full font-semibold hover:bg-white/10 transition">
-                      {t('nav.login')}
-                    </button>
-                  </Link>
-
-                  <Link to="/sign-up">
-                    <button className="bg-white text-[#0194FE] px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
-                      {t('nav.register')}
-                    </button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link to="/tickets">
-                    <button className="text-white px-4 py-2 rounded-full font-semibold hover:bg-white/10 transition">
-                      {t('nav.myTickets')}
-                    </button>
-                  </Link>
-
-                  <Link to="/profile">
-                    <button className="flex items-center gap-2 bg-white text-[#0194FE] px-4 py-2 rounded-full font-semibold hover:bg-gray-100 transition">
-                      <User className="w-4 h-4" />
-                      {t('nav.profile')}
-                    </button>
-                  </Link>
-
-                  <button
-                    onClick={() => void logout()}
-                    className="flex items-center gap-2 text-white px-4 py-2 rounded-full font-semibold hover:bg-white/10 transition"
-                    title={user?.email ?? 'Logout'}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    {t('nav.logout') ?? 'Logout'}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      <SiteNavbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-16">

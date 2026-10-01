@@ -3,7 +3,9 @@
     "login": "Login",
     "register": "Register",
     "myTickets": "My Tickets",
-    "profile": "Profile"
+    "profile": "Profile",
+    "buy": "Buy BEP",
+    "logout": "Logout"
   },
   "home": {
     "title": "Buy Electronic Tickets",
