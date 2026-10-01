@@ -17,7 +17,7 @@ export function HomePage() {
               <div className="bg-white rounded-full p-2">
                 <Smartphone className="w-6 h-6 text-[#0194FE]" />
               </div>
-              <span className="text-white font-bold text-xl">Smart Driver</span>
+              <span className="text-white font-bold text-xl">Smart Driver Club</span>
             </div>
 
             <div className="flex items-center gap-3">
@@ -175,7 +175,7 @@ export function HomePage() {
 
       <footer className="bg-white/10 backdrop-blur-sm border-t border-white/20 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <p className="text-center text-white/80">© 2025 Smart Driver. {t('home.footer')}</p>
+          <p className="text-center text-white/80">© 2025 Smart Driver Club. {t('home.footer')}</p>
           <nav className="mt-3 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
             <a href="/legal/termeni-si-conditii" className="text-white/80 hover:text-white underline">Termeni și Condiții</a>
             <a href="/legal/politica-de-confidentialitate" className="text-white/80 hover:text-white underline">Politica de Confidențialitate</a>

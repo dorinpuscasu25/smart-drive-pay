@@ -11,16 +11,6 @@ type RegistrationStep = 'details' | 'verify-email' | 'phone' | 'verify-phone' | 
 type Gender = 'male' | 'female';
 
 // Țările de reședință (T&C 3.1, 4.1) – aceeași listă ca în aplicația mobilă.
-const COUNTRY_OPTIONS = [
-  { code: 'MD', label: 'Moldova' },
-  { code: 'RO', label: 'România' },
-  { code: 'UA', label: 'Ucraina' },
-  { code: 'IT', label: 'Italia' },
-  { code: 'DE', label: 'Germania' },
-  { code: 'FR', label: 'Franța' },
-  { code: 'GB', label: 'Marea Britanie' },
-];
-
 const LEGAL = {
   terms: '/legal/termeni-si-conditii',
   privacy: '/legal/politica-de-confidentialitate',
@@ -53,7 +43,7 @@ const CONSENTS: { key: string; required: boolean; label: React.ReactNode }[] = [
   },
   { key: 'age_18', required: true, label: 'Confirm că am împlinit 18 ani' },
   { key: 'geolocation', required: false, label: 'Permit folosirea locației pentru a găsi service-uri apropiate (opțional)' },
-  { key: 'personalized_ads', required: false, label: 'Accept reclame personalizate de la partenerii Smart Driver (opțional)' },
+  { key: 'personalized_ads', required: false, label: 'Accept reclame personalizate de la partenerii Smart Driver Club (opțional)' },
   { key: 'marketing', required: false, label: 'Vreau să primesc noutăți și oferte (opțional)' },
 ];
 
@@ -71,7 +61,6 @@ export function SignUpPage() {
     phoneCode: '',
     phone: '',
     gender: 'male' as Gender,
-    countryCode: 'MD',
   });
   const [consents, setConsents] = useState<Record<string, boolean>>(
     () => Object.fromEntries(CONSENTS.map((consent) => [consent.key, false]))
@@ -134,7 +123,6 @@ export function SignUpPage() {
             referral_id: Number.parseInt(formData.referralId.trim(), 10),
             full_name: formData.fullName.trim(),
             gender: formData.gender,
-            country_code: formData.countryCode,
             email: formData.email.trim(),
           }
         );
@@ -232,7 +220,7 @@ export function SignUpPage() {
             </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Creează cont</h1>
             <p className="text-slate-600">
-              {step === 'details' && 'Creează contul Smart Driver pentru web și mobil'}
+              {step === 'details' && 'Creează contul Smart Driver Club pentru web și mobil'}
               {step === 'verify-email' && 'Confirmă codul primit pe email'}
               {step === 'phone' && 'Adaugă numărul de telefon'}
               {step === 'verify-phone' && 'Confirmă codul primit prin SMS'}
@@ -304,22 +292,6 @@ export function SignUpPage() {
                   >
                     <option value="male">Masculin</option>
                     <option value="female">Feminin</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="countryCode" className="block text-sm font-medium text-slate-700 mb-2">
-                    Țara de reședință <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="countryCode"
-                    value={formData.countryCode}
-                    onChange={(e) => setFormData((current) => ({ ...current, countryCode: e.target.value }))}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white"
-                  >
-                    {COUNTRY_OPTIONS.map((country) => (
-                      <option key={country.code} value={country.code}>{country.label}</option>
-                    ))}
                   </select>
                 </div>
 
@@ -489,7 +461,7 @@ export function SignUpPage() {
 
         <div className="mt-6 text-center text-sm text-slate-400">
           <p>Nu ai un ID de invitație?</p>
-          <p className="mt-1">Cere ID-ul numeric de la un utilizator existent din Smart Driver.</p>
+          <p className="mt-1">Cere ID-ul numeric de la un utilizator existent din Smart Driver Club.</p>
         </div>
       </div>
     </div>

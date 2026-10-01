@@ -103,6 +103,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token]);
 
+  // Profilul salvat în localStorage e doar un cache: mașinile/BEP-urile adăugate din aplicație
+  // apar abia după ce îl reîncărcăm de la server (la pornire și când utilizatorul revine pe tab).
+  useEffect(() => {
+    if (!token) return;
+
+    void syncUser();
+
+    const onFocus = () => void syncUser();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [token, syncUser]);
+
   const value: AuthContextType = useMemo(() => ({
     user,
     token,

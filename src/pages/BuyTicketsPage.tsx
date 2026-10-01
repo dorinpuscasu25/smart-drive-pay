@@ -1,9 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Check, ArrowLeft, Loader2, Ticket, LogOut, ShoppingCart } from 'lucide-react';
+import { Check, ArrowLeft, Loader2, Ticket, LogOut, ShoppingCart, Car as CarIcon, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { api } from '../lib/api';
 import { getErrorMessage } from '../lib/api/errors';
+import type { Car } from '../lib/types';
+
+// T&C 4.1: profilul auto complet e necesar pentru BEP (aceleași câmpuri ca pe server).
+const CAR_PROFILE_FIELDS: [keyof Car, string][] = [
+  ['registration_number', 'număr de înmatriculare'],
+  ['brand', 'marca'],
+  ['model', 'modelul'],
+  ['year', 'anul'],
+  ['cc', 'cilindreea'],
+  ['body_type', 'tipul caroseriei'],
+  ['transmission', 'cutia de viteză'],
+  ['fuel_type', 'tipul de combustibil'],
+  ['color', 'culoarea'],
+  ['vin', 'codul VIN'],
+];
+
+function missingCarFields(car: Car) {
+  return CAR_PROFILE_FIELDS.filter(([key]) => car[key] === null || car[key] === undefined || car[key] === '').map(([, label]) => label);
+}
+
+function carName(car: Car) {
+  return [car.brand, car.model, car.year].filter(Boolean).join(' ');
+}
 
 type BepPass = {
   id: number;
@@ -35,6 +58,14 @@ export function BuyTicketsPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [error, setError] = useState<string>('');
   const [purchasing, setPurchasing] = useState(false);
+  const [cars, setCars] = useState<Car[]>([]);
+  const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
+
+  const selectedCar = useMemo(
+    () => cars.find((c) => c.id === selectedCarId) ?? null,
+    [cars, selectedCarId]
+  );
+  const selectedCarMissing = selectedCar ? missingCarFields(selectedCar) : [];
 
   const selectedPass = useMemo(
     () => passes.find((p) => p.id === selectedId) ?? null,
@@ -54,12 +85,20 @@ export function BuyTicketsPage() {
         setError('');
         setLoading(true);
 
-        const res = await api.authed.get<{ bep_passes: BepPass[] }>('/bep-passes/all');
+        const [res, carsRes] = await Promise.all([
+          api.authed.get<{ bep_passes: BepPass[] }>('/bep-passes/all'),
+          api.authed.get<{ cars: Car[] }>('/cars/all'),
+        ]);
 
         const active = (res?.bep_passes ?? []).filter((p) => p.status === 'active');
         setPasses(active);
 
         if (active.length > 0) setSelectedId(active[0].id);
+
+        // Mașinile vin din profilul din aplicație; dacă e una singură, o alegem direct.
+        const userCars = carsRes?.cars ?? [];
+        setCars(userCars);
+        if (userCars.length === 1) setSelectedCarId(userCars[0].id);
       } catch (error: unknown) {
         setError(getErrorMessage(error, 'Nu am putut încărca lista de bilete.'));
       } finally {
@@ -70,6 +109,10 @@ export function BuyTicketsPage() {
 
   const handlePurchase = async () => {
     if (!selectedPass) return;
+    if (!selectedCar) {
+      setError('Alege mașina pentru care cumperi BEP-ul.');
+      return;
+    }
 
     try {
       setPurchasing(true);
@@ -77,7 +120,7 @@ export function BuyTicketsPage() {
 
       const data = await api.authed.post<OrderPaymentResponse>(
         '/orders/new-order',
-        { bep_pass_id: selectedPass.id }
+        { bep_pass_id: selectedPass.id, car_id: selectedCar.id }
       );
 
       if (!data?.pay) {
@@ -138,8 +181,8 @@ export function BuyTicketsPage() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Alege biletul potrivit</h1>
-          <p className="text-xl text-white/90">Selectează pachetul care se potrivește nevoilor tale</p>
+          <h1 className="text-4xl font-bold text-white mb-4">Cumpără BEP</h1>
+          <p className="text-xl text-white/90">Alege BEP-ul și mașina pentru care îl cumperi</p>
         </div>
 
         {error && (
@@ -193,12 +236,64 @@ export function BuyTicketsPage() {
 
             {selectedPass && (
               <div className="bg-white rounded-3xl shadow-2xl p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Finalizează comanda</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Pentru ce mașină cumperi BEP-ul?</h2>
+                <p className="text-gray-600 mb-6">Un BEP este valabil pentru o singură mașină (un număr de înmatriculare).</p>
+
+                {cars.length === 0 ? (
+                  <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-4 flex gap-3">
+                    <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                    <span>
+                      Nu ai nicio mașină în profil. Adaug-o în aplicația Smart Driver Club (Profil → Mașinile mele), apoi revino pe această pagină.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                    {cars.map((car) => {
+                      const missing = missingCarFields(car);
+                      const active = car.id === selectedCarId;
+                      return (
+                        <button
+                          key={car.id}
+                          type="button"
+                          onClick={() => setSelectedCarId(car.id)}
+                          className={`text-left rounded-2xl border-2 p-4 transition ${
+                            active ? 'border-[#0194FE] bg-[#0194FE]/5' : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <CarIcon className="w-6 h-6 text-[#0194FE] shrink-0" />
+                            <div className="min-w-0">
+                              <div className="font-mono font-bold text-gray-900">{car.registration_number || '—'}</div>
+                              <div className="text-sm text-gray-600 truncate">{carName(car) || `Mașina #${car.id}`}</div>
+                            </div>
+                            {active && <Check className="w-5 h-5 text-[#0194FE] ml-auto shrink-0" />}
+                          </div>
+                          {missing.length > 0 && (
+                            <div className="mt-2 text-xs text-amber-700">Profil incomplet: lipsește {missing.join(', ')}.</div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {selectedCar && selectedCarMissing.length > 0 && (
+                  <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-4 flex gap-3">
+                    <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                    <span>
+                      Completează în aplicație profilul mașinii {selectedCar.registration_number} ({selectedCarMissing.join(', ')}), apoi revino aici. Codul VIN îl găsești în certificatul de înmatriculare.
+                    </span>
+                  </div>
+                )}
 
                 <div className="bg-gray-50 rounded-2xl p-6 mb-6">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-700">Bilet selectat:</span>
+                    <span className="text-gray-700">BEP selectat:</span>
                     <span className="font-semibold text-gray-900">{selectedPass.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-gray-700">Mașina:</span>
+                    <span className="font-mono font-semibold text-gray-900">{selectedCar?.registration_number || '—'}</span>
                   </div>
                   <div className="flex justify-between items-center text-xl font-bold">
                     <span className="text-gray-900">Total de plată:</span>
@@ -210,7 +305,7 @@ export function BuyTicketsPage() {
 
                 <button
                   onClick={handlePurchase}
-                  disabled={purchasing}
+                  disabled={purchasing || !selectedCar || selectedCarMissing.length > 0}
                   className="w-full bg-[#0194FE] text-white py-4 rounded-2xl text-lg font-bold hover:bg-[#0166B8] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                 >
                   {purchasing ? (

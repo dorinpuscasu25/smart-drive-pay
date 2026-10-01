@@ -36,7 +36,7 @@ export function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <p className="text-slate-600">Loading profile...</p>
+          <p className="text-slate-600">Se încarcă profilul...</p>
         </div>
       </div>
     );
@@ -51,14 +51,14 @@ export function ProfilePage() {
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span>Back to Home</span>
+            <span>Înapoi</span>
           </button>
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
           >
             <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <span>Ieșire</span>
           </button>
         </div>
 
@@ -79,19 +79,19 @@ export function ProfilePage() {
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <Ticket className="w-6 h-6 text-green-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900">Account Status</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Starea contului</h3>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-600">BEP Purchased:</span>
+                  <span className="text-slate-600">BEP cumpărat:</span>
                   <span className={hasPurchasedBep ? 'text-green-600 font-medium' : 'text-red-600'}>
-                    {hasPurchasedBep ? 'Yes' : 'No'}
+                    {hasPurchasedBep ? 'Da' : 'Nu'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Verified:</span>
+                  <span className="text-slate-600">Email confirmat:</span>
                   <span className={user.email_verified_at ? 'text-green-600 font-medium' : 'text-red-600'}>
-                    {user.email_verified_at ? 'Yes' : 'No'}
+                    {user.email_verified_at ? 'Da' : 'Nu'}
                   </span>
                 </div>
               </div>
@@ -102,7 +102,7 @@ export function ProfilePage() {
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                   <User className="w-6 h-6 text-blue-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900">User ID</h3>
+                <h3 className="text-lg font-semibold text-slate-900">ID utilizator</h3>
               </div>
               {user.id ? (
                 <div>
@@ -113,7 +113,7 @@ export function ProfilePage() {
                     <button
                       onClick={handleCopyPersonalId}
                       className="p-2 hover:bg-slate-200 rounded-lg transition"
-                      title="Copy to clipboard"
+                      title="Copiază"
                     >
                       {copied ? (
                         <CheckCircle className="w-5 h-5 text-green-600" />
@@ -128,7 +128,7 @@ export function ProfilePage() {
                 </div>
               ) : (
                 <div className="text-slate-600">
-                  <p className="mb-2">Not available yet</p>
+                  <p className="mb-2">Indisponibil momentan</p>
                 </div>
               )}
             </div>
@@ -137,7 +137,7 @@ export function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
             <div className="p-5 bg-slate-50 rounded-xl">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-slate-600">Cars</span>
+                <span className="text-slate-600">Mașini</span>
                 <Car className="w-5 h-5 text-[#0194FE]" />
               </div>
               <p className="text-3xl font-bold text-slate-900">{user.cars_count ?? 0}</p>
@@ -153,7 +153,7 @@ export function ProfilePage() {
 
             <div className="p-5 bg-slate-50 rounded-xl">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-slate-600">Orders</span>
+                <span className="text-slate-600">Comenzi</span>
                 <Ticket className="w-5 h-5 text-[#0194FE]" />
               </div>
               <p className="text-3xl font-bold text-slate-900">{user.orders_count ?? 0}</p>
@@ -161,7 +161,7 @@ export function ProfilePage() {
 
             <div className="p-5 bg-slate-50 rounded-xl">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-slate-600">Companies</span>
+                <span className="text-slate-600">Companii</span>
                 <Building2 className="w-5 h-5 text-[#0194FE]" />
               </div>
               <p className="text-3xl font-bold text-slate-900">{user.companies_owned_count ?? 0}</p>
@@ -180,7 +180,7 @@ export function ProfilePage() {
             <div className="p-5 bg-slate-50 rounded-xl">
               <div className="flex items-center gap-3 mb-2">
                 <Phone className="w-5 h-5 text-[#0194FE]" />
-                <span className="text-slate-600">Phone</span>
+                <span className="text-slate-600">Telefon</span>
               </div>
               <p className="font-semibold text-slate-900">{user.phone || '—'}</p>
             </div>
@@ -189,7 +189,7 @@ export function ProfilePage() {
 
         {!hasPurchasedBep && (
           <div className="mt-6 p-6 bg-blue-50 border border-blue-200 rounded-xl">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">Ready to buy your first BEP?</h3>
+            <h3 className="text-lg font-semibold text-blue-900 mb-2">Gata să cumperi primul BEP?</h3>
             <p className="text-blue-800 mb-4">
               Pe web, contul tău este folosit doar pentru cumpărarea BEP-urilor și vizualizarea lor.
             </p>
@@ -197,7 +197,7 @@ export function ProfilePage() {
               onClick={() => navigate('/buy')}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
             >
-              Buy BEP Ticket
+              Cumpără BEP
             </button>
           </div>
         )}

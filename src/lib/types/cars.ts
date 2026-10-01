@@ -16,6 +16,7 @@ export type Car = {
   fuel_type: string | null;
   color: string | null;
   registration_number: string | null;
+  vin?: string | null;
   created_at: string;
   updated_at: string;
   photos?: CarPhoto[];

@@ -287,7 +287,7 @@ export function ThankYouPage() {
                     <h3 className="text-lg font-bold text-slate-900">Ce urmează</h3>
                   </div>
                   <p className="text-sm text-slate-700">
-                    Loghează-te în aplicația mobilă Smart Driver cu același cont. BEP-ul cumpărat aici va apărea automat în contul tău.
+                    Loghează-te în aplicația mobilă Smart Driver Club cu același cont. BEP-ul cumpărat aici va apărea automat în contul tău.
                   </p>
                 </div>
               </div>

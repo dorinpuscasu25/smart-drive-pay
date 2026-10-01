@@ -106,7 +106,7 @@ export function MyTicketsPage() {
               Nu ai niciun bilet încă
             </h2>
             <p className="text-gray-600 mb-8">
-              Cumpără primul tău bilet BEP pentru a începe să folosești aplicația Smart Driver
+              Cumpără primul tău bilet BEP pentru a începe să folosești aplicația Smart Driver Club
             </p>
             <button
               onClick={() => navigate('/buy')}
@@ -181,7 +181,7 @@ export function MyTicketsPage() {
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <div className="bg-blue-50 rounded-xl p-4">
                     <p className="text-sm text-gray-700">
-                      <strong>Cum folosești biletul:</strong> Descarcă aplicația Smart Driver și loghează-te cu același cont. BEP-ul va apărea automat în aplicație.
+                      <strong>Cum folosești biletul:</strong> Descarcă aplicația Smart Driver Club și loghează-te cu același cont. BEP-ul va apărea automat în aplicație.
                     </p>
                   </div>
                 </div>
